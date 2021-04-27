@@ -4,6 +4,7 @@ defmodule DojoElixir.Application do
   alias DojoElixir.Adapters.Secrets.SecretManagerAdapter
   alias DojoElixir.Adapters.Repositories.Repo
   alias DojoElixir.Config.{AppConfig, ConfigHolder}
+  alias DojoElixir.Helpers.Metrics.{PlugInstrumenter, RepoInstrumenter}
 
   use Application
   require Logger
@@ -13,6 +14,17 @@ defmodule DojoElixir.Application do
     in_test? = Application.fetch_env(:dojo_elixir, :in_test)
 
     children = with_plug_server(config) ++ application_children(in_test?)
+
+    PlugInstrumenter.setup()
+    RepoInstrumenter.setup()
+
+    :ok =
+      :telemetry.attach(
+        "prometheus-ecto",
+        [:dojo_elixir, :repo, :query],
+        &RepoInstrumenter.handle_event/4,
+        %{}
+      )
 
     opts = [strategy: :one_for_one, name: DojoElixir.Supervisor]
     Supervisor.start_link(children, opts)

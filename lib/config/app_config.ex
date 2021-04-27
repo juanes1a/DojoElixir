@@ -5,7 +5,8 @@ defmodule DojoElixir.Config.AppConfig do
     :secret_name,
     :region,
     :token_exp,
-    :version
+    :version,
+    :user_repo
   ]
 
   def load_config do
@@ -15,7 +16,8 @@ defmodule DojoElixir.Config.AppConfig do
       secret_name: load(:secret_name),
       region: load(:region),
       token_exp: load(:token_exp),
-      version: load(:version)
+      version: load(:version),
+      user_repo: load(:user_repo)
     }
   end
 

@@ -1,16 +1,25 @@
 defmodule DojoElixir.EntryPoint.User.UserController do
   alias DojoElixir.EntryPoint.HealthIndicator
+  alias DojoElixir.UseCase.Users.UsersUseCase
+
   require Logger
+
   use Plug.Router
 
   plug CORSPlug, methods: ["GET", "POST"]
   plug Plug.Logger, log: :debug
+  plug DojoElixir.Helpers.Metrics.PlugInstrumenter
   plug :match
   plug Plug.Parsers, parsers: [:urlencoded, :json], json_decoder: Poison
   plug :dispatch
 
   get "/health" do
     HealthIndicator.health()
+    |> build_response(conn)
+  end
+
+  get "/api/users/" do
+    UsersUseCase.get_all_users()
     |> build_response(conn)
   end
 
@@ -31,7 +40,7 @@ defmodule DojoElixir.EntryPoint.User.UserController do
   end
 
   def build_response(response, conn) do
-    build_response(%{status: 200, body: response}, conn)
+    build_response(%{status: 200, body: Poison.encode!(response)}, conn)
   end
 
   match _ do
