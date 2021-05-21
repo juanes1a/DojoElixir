@@ -4,11 +4,11 @@ defmodule DojoElixir.Application do
   alias DojoElixir.Adapters.Secrets.SecretManagerAdapter
   alias DojoElixir.Adapters.Repositories.Repo
   alias DojoElixir.Config.{AppConfig, ConfigHolder}
-
+  import Telemetry.Metrics
   use Application
   require Logger
 
-  def start(_type,  _args) do
+  def start(_type, _args) do
     config = AppConfig.load_config()
     in_test? = Application.fetch_env(:dojo_elixir, :in_test)
 
@@ -44,8 +44,25 @@ defmodule DojoElixir.Application do
   def application_children(_other_env) do
     [
       {ConfigHolder, AppConfig.load_config()},
-      #{SecretManagerAdapter, []},
+      {TelemetryMetricsPrometheus, [metrics: metrics()]},
       {Repo, []},
+    ]
+  end
+
+  defp metrics do
+    [
+      #Metrics personalized
+      last_value("dojo_elixir.plug.start.duration", unit: :millisecond),
+      last_value("dojo_elixir.plug.stop.duration"),
+
+
+      sum("http.request.payload_size", unit: :byte),
+
+      # VM Metrics
+      last_value("vm.memory.total", unit: {:byte, :kilobyte}),
+      sum("vm.total_run_queue_lengths.total"),
+      sum("vm.total_run_queue_lengths.cpu"),
+      sum("vm.total_run_queue_lengths.io")
     ]
   end
 

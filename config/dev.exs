@@ -18,9 +18,12 @@ config :logger,
 
 config :dojo_elixir,
        DojoElixir.Adapters.Repositories.Repo,
-       database: "",
-       username: "",
-       password: "",
-       hostname: "",
+       database: "postgres",
+       username: "todo_admin",
+       password: "!QAZxsw2#EDC",
+       hostname: "tododatabase.cluster-czjpirjqvlyp.us-east-1.rds.amazonaws.com",
        show_sensitive_data_on_connection_error: true,
        pool_size: 10
+
+config :dojo_elixir,
+       user_repo: DojoElixir.Adapters.Repositories.Users.UserGateway

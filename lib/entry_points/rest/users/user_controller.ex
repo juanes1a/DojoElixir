@@ -1,6 +1,9 @@
 defmodule DojoElixir.EntryPoint.User.UserController do
   alias DojoElixir.EntryPoint.HealthIndicator
+  alias DojoElixir.UseCase.Users.UsersUseCase
+  import DojoElixir.Utils.Telemetry
   require Logger
+
   use Plug.Router
 
   plug CORSPlug, methods: ["GET", "POST"]
@@ -8,30 +11,37 @@ defmodule DojoElixir.EntryPoint.User.UserController do
   plug :match
   plug Plug.Parsers, parsers: [:urlencoded, :json], json_decoder: Poison
   plug :dispatch
+  plug Plug.Telemetry, event_prefix: [:dojo_elixir, :plug]
+
 
   get "/health" do
+    start_ms = System.monotonic_time(:milliseconds)
     HealthIndicator.health()
-    |> build_response(conn)
+    |> build_response(conn, start_ms)
   end
 
-  def build_empty_response(_, conn) do
-    build_response(%{status: 204, body: ""}, conn)
+  get "/api/users/" do
+    start_ms = System.monotonic_time(:millisecond)
+    #telemetry_measurement(:http, 'count', 1, %{controller: "users", operation: 'get_users'})
+    UsersUseCase.get_all_users()
+    |> build_response(conn, start_ms)
   end
 
-  def build_response(%{cookie: {key, value}}, conn) do
-    conn
-    |> put_resp_cookie(key, value, path: "/", http_only: true, secure: true, same_site: "Strict")
-    |> send_resp(200, "")
+  def build_empty_response(_, conn, start_time) do
+    build_response(%{status: 204, body: ""}, conn, start_time)
   end
 
-  def build_response(%{status: status, body: body}, conn) do
+  def build_response(%{status: status, body: body}, conn, start_time) do
+    end_ms = System.monotonic_time(:millisecond)
+    diff = end_ms - start_time
+    #telemetry_measurement(:http, 'stop', diff)
     conn
     |> put_resp_content_type("application/json")
     |> send_resp(status, body)
   end
 
-  def build_response(response, conn) do
-    build_response(%{status: 200, body: response}, conn)
+  def build_response(response, conn, start_time) do
+    build_response(%{status: 200, body: Poison.encode!(response)}, conn, start_time)
   end
 
   match _ do
